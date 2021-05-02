@@ -4,6 +4,8 @@ class ImageScaler : System.IDisposable
 {
     #region Public interface
 
+    public Vector2 ScaleFactor { get; private set; }
+
     public ComputeBuffer SquarifiedTensor => _squarified;
 
     public ImageScaler(int width, ComputeShader compute)
@@ -25,7 +27,7 @@ class ImageScaler : System.IDisposable
     ComputeShader _compute;
     ComputeBuffer _squarified;
 
-    const float MaxAspectGap = 0.35f;
+    const float MaxAspectGap = 0.75f;
 
     #endregion
 
@@ -33,17 +35,16 @@ class ImageScaler : System.IDisposable
 
     public void RunScaler(Texture2D source)
     {
-        var aspect = (float)source.width / source.height;
-        var (sx, sy) = (1.0f, 1.0f);
+        (float w, float h) = (source.width, source.height);
 
-        if (aspect > 1)
-            sy = Mathf.Max(aspect - MaxAspectGap, 1);
+        if (w > h)
+            ScaleFactor = new Vector2(1, Mathf.Max(w / h * MaxAspectGap, 1));
         else
-            sx = Mathf.Max(1 / aspect - MaxAspectGap, 1);
+            ScaleFactor = new Vector2(Mathf.Max(h / w * MaxAspectGap, 1), 1);
 
         _compute.SetTexture(0, "_sc_input", source);
         _compute.SetInt("_sc_width", _width);
-        _compute.SetVector("_sc_scale", new Vector2(sx, sy));
+        _compute.SetVector("_sc_scale", ScaleFactor);
         _compute.SetBuffer(0, "_sc_output", _squarified);
         _compute.Dispatch(0, _width / 8, _width / 8, 1);
     }
