@@ -31,9 +31,12 @@ class Tester : MonoBehaviour
     void InitializeScalerObjects()
     {
         var (w, h) = (_sourceSize.x, _sourceSize.y);
+        var offs_x = (_original.width - w) / 2;
+        var offs_y = (_original.height - h) / 2;
 
         _source = new Texture2D(w, h, _original.format, false);
-        Graphics.CopyTexture(_original, 0, 0, 0, 0, w, h, _source, 0, 0, 0, 0);
+        Graphics.CopyTexture
+          (_original, 0, 0, offs_x, offs_y, w, h, _source, 0, 0, 0, 0);
 
         _scaler = new ImageScaler(_tensorWidth, _scalerCompute);
         _scaler.ProcessImage(_source);
