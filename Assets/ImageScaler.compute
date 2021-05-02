@@ -1,0 +1,36 @@
+#pragma kernel sc_kernel
+
+sampler2D _sc_input;
+uint _sc_width;
+float2 _sc_scale;
+
+RWStructuredBuffer<float> _sc_output;
+
+[numthreads(8, 8, 1)]
+void sc_kernel(uint2 id : SV_DispatchThreadID)
+{
+    if (any(id > _sc_width)) return;
+
+    // UV coordinates
+    float2 uv = (id + 0.5) / _sc_width;
+    uv.y = 1 - uv.y;
+
+    // Scaling
+    uv = (uv - 0.5) * _sc_scale + 0.5;
+
+    // UV gradients
+    float2 duv_dx = float2(+1.0 / _sc_width * _sc_scale.x, 0);
+    float2 duv_dy = float2(0, -1.0 / _sc_width * _sc_scale.y);
+
+    // Texture sample
+    float3 rgb = tex2Dgrad(_sc_input, uv, duv_dx, duv_dy).rgb;
+
+    // Bounding
+    rgb *= all(uv > 0) && all (uv < 1);
+
+    // Tensor element output
+    uint offs = (id.y * _sc_width + id.x) * 3;
+    _sc_output[offs + 0] = rgb.r;
+    _sc_output[offs + 1] = rgb.g;
+    _sc_output[offs + 2] = rgb.b;
+}
