@@ -25,6 +25,8 @@ class ImageScaler : System.IDisposable
     ComputeShader _compute;
     ComputeBuffer _squarified;
 
+    const float MaxAspectGap = 0.35f;
+
     #endregion
 
     #region Scaler implementation
@@ -35,9 +37,9 @@ class ImageScaler : System.IDisposable
         var (sx, sy) = (1.0f, 1.0f);
 
         if (aspect > 1)
-            sy = aspect;
+            sy = Mathf.Max(aspect - MaxAspectGap, 1);
         else
-            sx = 1.0f / aspect;
+            sx = Mathf.Max(1 / aspect - MaxAspectGap, 1);
 
         _compute.SetTexture(0, "_sc_input", source);
         _compute.SetInt("_sc_width", _width);
