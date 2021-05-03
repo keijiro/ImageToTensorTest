@@ -11,7 +11,6 @@ class Tester : MonoBehaviour
     [Space]
     [SerializeField] UI.RawImage _sourceUI = null;
     [SerializeField] UI.RawImage _tensorUI = null;
-    [SerializeField] RectTransform _mouseArea = null;
     [SerializeField] RectTransform _cursorUI = null;
     [Space]
     [SerializeField] ComputeShader _scalerCompute = null;
@@ -54,23 +53,9 @@ class Tester : MonoBehaviour
         _sourceUI.texture = _source;
         _tensorUI.material = _tensorView;
 
-        // Resize the source view to fit the parent rectangle.
-        var src_xform = (RectTransform)_sourceUI.transform;
-        var parent = ((RectTransform)src_xform.parent).rect;
-
-        var h_axis = RectTransform.Axis.Horizontal;
-        var v_axis = RectTransform.Axis.Vertical;
-
-        if (w * parent.height > parent.width * h)
-        {
-            src_xform.SetSizeWithCurrentAnchors(h_axis, parent.width);
-            src_xform.SetSizeWithCurrentAnchors(v_axis, h * parent.width / w);
-        }
-        else
-        {
-            src_xform.SetSizeWithCurrentAnchors(h_axis, w * parent.height / h);
-            src_xform.SetSizeWithCurrentAnchors(v_axis, parent.height);
-        }
+        // Update the source view aspect ratio.
+        var fitter = _sourceUI.GetComponent<UI.AspectRatioFitter>();
+        fitter.aspectRatio = (float)w / h;
     }
 
     void ReleaseScalerObjects()
@@ -115,9 +100,14 @@ class Tester : MonoBehaviour
         if (_source == null) InitializeScalerObjects();
 
         // Cursor movement
-        var mp = _mouseArea.InverseTransformPoint(Input.mousePosition);
+        var mouseArea = (RectTransform)_tensorUI.transform;
         var area = ((RectTransform)_cursorUI.transform.parent).rect;
-        _cursorUI.anchoredPosition = mp * area.size / _mouseArea.rect.size;
+
+        var p = (Vector2)mouseArea.InverseTransformPoint(Input.mousePosition);
+        p = p / mouseArea.rect.size * _scaler.ScaleFactor + Vector2.one * 0.5f;
+        p *= ((RectTransform)_cursorUI.transform.parent).rect.size;
+
+        _cursorUI.anchoredPosition = p;
     }
 
     #endregion
