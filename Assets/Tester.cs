@@ -11,6 +11,8 @@ class Tester : MonoBehaviour
     [Space]
     [SerializeField] UI.RawImage _sourceUI = null;
     [SerializeField] UI.RawImage _tensorUI = null;
+    [SerializeField] RectTransform _mouseArea = null;
+    [SerializeField] RectTransform _cursorUI = null;
     [Space]
     [SerializeField] ComputeShader _scalerCompute = null;
     [SerializeField] Shader _tensorViewShader = null;
@@ -30,6 +32,7 @@ class Tester : MonoBehaviour
 
     void InitializeScalerObjects()
     {
+        // Crop the original texture and copy it into the source texture.
         var (w, h) = (_sourceSize.x, _sourceSize.y);
         var offs_x = (_original.width - w) / 2;
         var offs_y = (_original.height - h) / 2;
@@ -38,19 +41,36 @@ class Tester : MonoBehaviour
         Graphics.CopyTexture
           (_original, 0, 0, offs_x, offs_y, w, h, _source, 0, 0, 0, 0);
 
+        // Create and run the image scaler.
         _scaler = new ImageScaler(_tensorWidth, _scalerCompute);
         _scaler.ProcessImage(_source);
 
+        // Show the result on the tensor view.
         _tensorView = new Material(_tensorViewShader);
         _tensorView.SetBuffer("_Tensor", _scaler.SquarifiedTensor);
         _tensorView.SetInt("_TensorWidth", _tensorWidth);
 
+        // Update UI elements.
         _sourceUI.texture = _source;
         _tensorUI.material = _tensorView;
 
-        var rectx = (RectTransform)_sourceUI.transform;
-        rectx.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, w);
-        rectx.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, h);
+        // Resize the source view to fit the parent rectangle.
+        var src_xform = (RectTransform)_sourceUI.transform;
+        var parent = ((RectTransform)src_xform.parent).rect;
+
+        var h_axis = RectTransform.Axis.Horizontal;
+        var v_axis = RectTransform.Axis.Vertical;
+
+        if (w * parent.height > parent.width * h)
+        {
+            src_xform.SetSizeWithCurrentAnchors(h_axis, parent.width);
+            src_xform.SetSizeWithCurrentAnchors(v_axis, h * parent.width / w);
+        }
+        else
+        {
+            src_xform.SetSizeWithCurrentAnchors(h_axis, w * parent.height / h);
+            src_xform.SetSizeWithCurrentAnchors(v_axis, parent.height);
+        }
     }
 
     void ReleaseScalerObjects()
@@ -93,6 +113,11 @@ class Tester : MonoBehaviour
         }
 
         if (_source == null) InitializeScalerObjects();
+
+        // Cursor movement
+        var mp = _mouseArea.InverseTransformPoint(Input.mousePosition);
+        var area = ((RectTransform)_cursorUI.transform.parent).rect;
+        _cursorUI.anchoredPosition = mp * area.size / _mouseArea.rect.size;
     }
 
     #endregion
