@@ -28,8 +28,9 @@ Shader "Hidden/ImageToTensorTest/TensorView"
                     float2 texCoord : TEXCOORD0,
                     float4 color : COLOR) : SV_Target
     {
-        uint2 texp = texCoord * _TensorWidth;
-        uint offs = (texp.y * _TensorWidth + texp.x) * 3;
+        uint x = texCoord.x * _TensorWidth;
+        uint y = (1 - texCoord.y) * _TensorWidth;
+        uint offs = (y * _TensorWidth + x) * 3;
         float r = _Tensor[offs + 0];
         float g = _Tensor[offs + 1];
         float b = _Tensor[offs + 2];
